@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宝宝绘本</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .book-title {
+    color: #f0e6d3;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    text-shadow: 0 2px 12px rgba(240,230,211,0.3);
+  }
+
+  .book-subtitle {
+    color: rgba(240,230,211,0.5);
+    font-size: 13px;
+    margin-top: 6px;
+    letter-spacing: 3px;
+  }
+
+  .book-container {
+    position: relative;
+    width: min(75vh, 600px);
+    height: min(75vh, 600px);
+  }
+
+  .page-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 
+      0 25px 80px rgba(0,0,0,0.4),
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 5px 20px rgba(0,0,0,0.3);
+  }
+
+  .page {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #fefefe 0%, #f8f5f0 100%);
+    transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+
+  .page img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 2px;
+  }
+
+  /* Page positions */
+  .page.hide-left {
+    transform: translateX(-110%);
+    opacity: 0;
+  }
+  .page.hide-right {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  .page.show {
+    transform: translateX(0);
+    opacity: 1;
+    z-index: 10;
+  }
+
+  /* Nav overlays */
+  .nav-area {
+    position: absolute;
+    top: 0;
+    width: 40%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s;
+    border: none;
+    background: transparent;
+  }
+
+  .nav-left { left: 0; justify-content: flex-start; padding-left: 12px; }
+  .nav-right { right: 0; justify-content: flex-end; padding-right: 12px; }
+
+  .nav-btn {
+    width: 44px;
+    height: 44px;
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.8);
+    font-size: 18px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .page-frame:hover .nav-btn { opacity: 1; }
+  .nav-area:hover .nav-btn { background: rgba(0,0,0,0.45); transform: scale(1.1); }
+
+  /* Bottom controls */
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .page-counter {
+    color: rgba(240,230,211,0.6);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 2px;
+  }
+
+  .page-name {
+    color: rgba(240,230,211,0.4);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-top: -6px;
+  }
+
+  .dots {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 500px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(240,230,211,0.15);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .dot.active {
+    background: #f0e6d3;
+    transform: scale(1.4);
+    box-shadow: 0 0 8px rgba(240,230,211,0.5);
+  }
+
+  .dot:hover {
+    background: rgba(240,230,211,0.5);
+    transform: scale(1.2);
+  }
+
+  .hint {
+    margin-top: 16px;
+    color: rgba(240,230,211,0.2);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    width: min(75vh, 600px);
+    height: 3px;
+    background: rgba(240,230,211,0.1);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f0e6d3, #d4a574);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="book-title">📖 宝宝的绘本</div>
+  <div class="book-subtitle">成长记录</div>
+</div>
+
+<div class="book-container">
+  <div class="page-frame" id="book"></div>
+</div>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progress"></div>
+</div>
+
+<div class="controls">
+  <div class="page-counter" id="counter"></div>
+  <div class="page-name" id="pageName"></div>
+  <div class="dots" id="dots"></div>
+</div>
+
+<div class="hint">← → 键翻页 · 点击左右区域 · 触摸滑动</div>
+
+<script>
+  // 绘本图片列表 — 按封面 + 数字顺序排列
+  const images = [
+    { label: '封面', src: './Actual_3000/封面.jpg' },
+    { label: '第 1 页', src: './Actual_3000/1.jpg' },
+    { label: '第 2 页', src: './Actual_3000/2.jpg' },
+    { label: '第 3 页', src: './Actual_3000/3.jpg' },
+    { label: '第 4 页', src: './Actual_3000/4.jpg' },
+    { label: '第 5 页', src: './Actual_3000/5.jpg' },
+    { label: '第 6 页', src: './Actual_3000/6.jpg' },
+    { label: '第 7 页', src: './Actual_3000/7.jpg' },
+    { label: '第 8 页', src: './Actual_3000/8.jpg' },
+    { label: '第 9 页', src: './Actual_3000/9.jpg' },
+    { label: '第 10 页', src: './Actual_3000/10.jpg' },
+    { label: '第 10 页 (附)', src: './Actual_3000/10.1.jpg' },
+    { label: '第 10 页 (附)', src: './Actual_3000/10.2.jpg' },
+    { label: '第 11 页', src: './Actual_3000/11.jpg' },
+    { label: '第 12 页', src: './Actual_3000/12.jpg' },
+    { label: '第 13 页', src: './Actual_3000/13.jpg' },
+    { label: '第 14 页', src: './Actual_3000/14.jpg' },
+    { label: '第 15 页', src: './Actual_3000/15.jpg' },
+    { label: '第 16 页', src: './Actual_3000/16.jpg' },
+    { label: '第 17 页', src: './Actual_3000/17.jpg' },
+    { label: '第 18 页', src: './Actual_3000/18.jpg' },
+    { label: '第 19 页', src: './Actual_3000/19.jpg' },
+    { label: '第 23 页', src: './Actual_3000/23.jpg' },
+  ];
+
+  let current = 0;
+  let animating = false;
+
+  function init() {
+    const book = document.getElementById('book');
+    const dots = document.getElementById('dots');
+    book.innerHTML = '';
+
+    images.forEach((img, i) => {
+      const page = document.createElement('div');
+      page.className = 'page ' + (i === 0 ? 'show' : 'hide-right');
+      page.innerHTML = `<img src="${img.src}" alt="${img.label}" loading="lazy">`;
+      book.appendChild(page);
+
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (i === 0 ? ' active' : '');
+      dot.title = img.label;
+      dot.onclick = () => goTo(i);
+      dots.appendChild(dot);
+    });
+
+    // Left nav
+    const leftNav = document.createElement('button');
+    leftNav.className = 'nav-area nav-left';
+    leftNav.innerHTML = '<div class="nav-btn">‹</div>';
+    leftNav.onclick = prevPage;
+    book.appendChild(leftNav);
+
+    // Right nav
+    const rightNav = document.createElement('button');
+    rightNav.className = 'nav-area nav-right';
+    rightNav.innerHTML = '<div class="nav-btn">›</div>';
+    rightNav.onclick = nextPage;
+    book.appendChild(rightNav);
+
+    update();
+    setupTouch();
+  }
+
+  function update() {
+    const pages = document.querySelectorAll('.page');
+    pages.forEach((page, i) => {
+      page.className = 'page';
+      if (i < current) page.classList.add('hide-left');
+      else if (i === current) page.classList.add('show');
+      else page.classList.add('hide-right');
+    });
+
+    document.querySelectorAll('.dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === current);
+    });
+
+    const progress = ((current + 1) / images.length * 100).toFixed(1);
+    document.getElementById('progress').style.width = progress + '%';
+    document.getElementById('counter').textContent = `${current + 1} / ${images.length}`;
+    document.getElementById('pageName').textContent = images[current].label;
+  }
+
+  function nextPage() {
+    if (current < images.length - 1 && !animating) {
+      animating = true;
+      current++;
+      update();
+      setTimeout(() => animating = false, 500);
+    }
+  }
+
+  function prevPage() {
+    if (current > 0 && !animating) {
+      animating = true;
+      current--;
+      update();
+      setTimeout(() => animating = false, 500);
+    }
+  }
+
+  function goTo(index) {
+    if (index >= 0 && index < images.length && index !== current && !animating) {
+      animating = true;
+      current = index;
+      update();
+      setTimeout(() => animating = false, 500);
+    }
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextPage(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevPage(); }
+  });
+
+  // Touch
+  function setupTouch() {
+    let startX = 0;
+    const el = document.getElementById('book');
+    el.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      const diff = startX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 40) diff > 0 ? nextPage() : prevPage();
+    }, { passive: true });
+  }
+
+  init();
+</script>
+</body>
+</html>
