@@ -2,65 +2,83 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>宝宝绘本</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
   body {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-    overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
+  /* Header */
   .header {
     text-align: center;
-    margin-bottom: 16px;
+    flex-shrink: 0;
+    padding: 12px 16px 8px;
   }
 
   .book-title {
     color: #f0e6d3;
-    font-size: 28px;
+    font-size: clamp(18px, 4vw, 28px);
     font-weight: 700;
-    letter-spacing: 6px;
+    letter-spacing: 4px;
     text-shadow: 0 2px 12px rgba(240,230,211,0.3);
   }
 
   .book-subtitle {
     color: rgba(240,230,211,0.5);
-    font-size: 13px;
-    margin-top: 6px;
-    letter-spacing: 3px;
+    font-size: clamp(10px, 2vw, 13px);
+    margin-top: 4px;
+    letter-spacing: 2px;
+  }
+
+  /* Book area — fits in remaining space without any overflow */
+  .book-wrapper {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 4px 8px;
+    min-height: 0;
   }
 
   .book-container {
     position: relative;
-    width: min(75vh, 600px);
-    height: min(75vh, 600px);
+    /* Square, fits in available space with safe padding */
+    width: min(85vw, 85vh, 500px);
+    height: min(85vw, 85vh, 500px);
   }
 
   .page-frame {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 8px;
-    overflow: hidden;
+    /* NO overflow:hidden, NO border-radius — prevents any clipping */
     background: #fff;
     box-shadow: 
-      0 25px 80px rgba(0,0,0,0.4),
-      0 0 0 1px rgba(255,255,255,0.08),
-      0 5px 20px rgba(0,0,0,0.3);
+      0 20px 60px rgba(0,0,0,0.4),
+      0 0 0 1px rgba(255,255,255,0.08);
   }
 
   .page {
     position: absolute;
+    top: 0; left: 0;
     width: 100%;
     height: 100%;
     display: flex;
@@ -71,13 +89,15 @@
   }
 
   .page img {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    border-radius: 2px;
+    display: block;
+    /* Ensures no extra spacing or cropping */
+    image-rendering: auto;
   }
 
-  /* Page positions */
+  /* Page slide positions */
   .page.hide-left {
     transform: translateX(-110%);
     opacity: 0;
@@ -107,14 +127,15 @@
     background: transparent;
   }
 
-  .nav-left { left: 0; justify-content: flex-start; padding-left: 12px; }
-  .nav-right { right: 0; justify-content: flex-end; padding-right: 12px; }
+  .nav-left { left: 0; justify-content: flex-start; padding-left: 8px; }
+  .nav-right { right: 0; justify-content: flex-end; padding-right: 8px; }
 
   .nav-btn {
-    width: 44px;
-    height: 44px;
-    background: rgba(0,0,0,0.25);
+    width: 40px;
+    height: 40px;
+    background: rgba(0,0,0,0.3);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -128,30 +149,38 @@
     border: 1px solid rgba(255,255,255,0.1);
   }
 
-  .page-frame:hover .nav-btn { opacity: 1; }
-  .nav-area:hover .nav-btn { background: rgba(0,0,0,0.45); transform: scale(1.1); }
+  @media (hover: hover) {
+    .page-frame:hover .nav-btn { opacity: 1; }
+    .nav-area:hover .nav-btn { background: rgba(0,0,0,0.5); transform: scale(1.1); }
+  }
+
+  /* Mobile: always show nav buttons */
+  @media (hover: none) {
+    .nav-btn { opacity: 0.5; }
+  }
 
   /* Bottom controls */
   .controls {
-    margin-top: 20px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    padding: 8px 16px 16px;
   }
 
   .page-counter {
     color: rgba(240,230,211,0.6);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     letter-spacing: 2px;
   }
 
   .page-name {
     color: rgba(240,230,211,0.4);
-    font-size: 12px;
+    font-size: 11px;
     letter-spacing: 1px;
-    margin-top: -6px;
+    margin-top: -4px;
   }
 
   .dots {
@@ -159,7 +188,7 @@
     gap: 6px;
     flex-wrap: wrap;
     justify-content: center;
-    max-width: 500px;
+    max-width: 400px;
   }
 
   .dot {
@@ -183,20 +212,20 @@
   }
 
   .hint {
-    margin-top: 16px;
     color: rgba(240,230,211,0.2);
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 1px;
   }
 
   /* Progress bar */
   .progress-bar {
-    width: min(75vh, 600px);
+    width: min(85vw, 500px);
     height: 3px;
     background: rgba(240,230,211,0.1);
     border-radius: 2px;
-    margin-top: 8px;
+    margin: 0 auto;
     overflow: hidden;
+    flex-shrink: 0;
   }
 
   .progress-fill {
@@ -214,8 +243,10 @@
   <div class="book-subtitle">成长记录</div>
 </div>
 
-<div class="book-container">
-  <div class="page-frame" id="book"></div>
+<div class="book-wrapper">
+  <div class="book-container">
+    <div class="page-frame" id="book"></div>
+  </div>
 </div>
 
 <div class="progress-bar">
@@ -231,7 +262,6 @@
 <div class="hint">← → 键翻页 · 点击左右区域 · 触摸滑动</div>
 
 <script>
-  // 绘本图片列表 — 按封面 + 数字顺序排列
   const images = [
     { label: '封面', src: './Actual_3000/封面.jpg' },
     { label: '第 1 页', src: './Actual_3000/1.jpg' },
@@ -269,7 +299,7 @@
     images.forEach((img, i) => {
       const page = document.createElement('div');
       page.className = 'page ' + (i === 0 ? 'show' : 'hide-right');
-      page.innerHTML = `<img src="${img.src}" alt="${img.label}" loading="lazy">`;
+      page.innerHTML = '<img src="' + img.src + '" alt="' + img.label + '" loading="lazy" decoding="async">';
       book.appendChild(page);
 
       const dot = document.createElement('div');
@@ -279,14 +309,12 @@
       dots.appendChild(dot);
     });
 
-    // Left nav
     const leftNav = document.createElement('button');
     leftNav.className = 'nav-area nav-left';
     leftNav.innerHTML = '<div class="nav-btn">‹</div>';
     leftNav.onclick = prevPage;
     book.appendChild(leftNav);
 
-    // Right nav
     const rightNav = document.createElement('button');
     rightNav.className = 'nav-area nav-right';
     rightNav.innerHTML = '<div class="nav-btn">›</div>';
@@ -312,7 +340,7 @@
 
     const progress = ((current + 1) / images.length * 100).toFixed(1);
     document.getElementById('progress').style.width = progress + '%';
-    document.getElementById('counter').textContent = `${current + 1} / ${images.length}`;
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + images.length;
     document.getElementById('pageName').textContent = images[current].label;
   }
 
@@ -343,13 +371,11 @@
     }
   }
 
-  // Keyboard
   document.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextPage(); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); prevPage(); }
   });
 
-  // Touch
   function setupTouch() {
     let startX = 0;
     const el = document.getElementById('book');
